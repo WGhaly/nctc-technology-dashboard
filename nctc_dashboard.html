@@ -901,13 +901,35 @@
         // Global variables for charts and data
         let charts = {};
         let originalData = {
-            funnel: [85, 62, 41, 27],
+            funnel: {
+                labels: ['TRL 1-3: Idea/Proof', 'TRL 4-5: Prototype', 'TRL 6-7: Pilot', 'TRL 8-9: Commercial'],
+                data: [85, 62, 41, 27],
+                trlMap: ['1-3', '4-5', '6-7', '8-9']
+            },
             bottlenecks: [35, 25, 20, 15, 8, 7],
             royalty: [25, 45, 30, 5],
             dealType: [40, 25, 15, 12, 8],
             sector: {
+                labels: ['Health', 'Engineering', 'ICT', 'Agri-food', 'Materials'],
                 distribution: [28, 22, 16, 26, 8],
-                success: [42, 35, 18, 38, 32]
+                success: [42, 35, 18, 38, 32],
+                sectorMap: ['health', 'engineering', 'ict', 'agri-food', 'materials']
+            },
+            // Detailed project data by sector and TRL
+            projectsBySector: {
+                'health': { projects: 60, trl: {'1-3': 15, '4-5': 18, '6-7': 15, '8-9': 12} },
+                'engineering': { projects: 47, trl: {'1-3': 12, '4-5': 15, '6-7': 12, '8-9': 8} },
+                'ict': { projects: 34, trl: {'1-3': 18, '4-5': 10, '6-7': 4, '8-9': 2} },
+                'agri-food': { projects: 56, trl: {'1-3': 14, '4-5': 16, '6-7': 18, '8-9': 8} },
+                'materials': { projects: 18, trl: {'1-3': 6, '4-5': 8, '6-7': 3, '8-9': 1} },
+                'energy': { projects: 12, trl: {'1-3': 4, '4-5': 5, '6-7': 2, '8-9': 1} }
+            },
+            projectsByInstitution: {
+                'cairo': { projects: 45, sectors: {'health': 12, 'engineering': 10, 'ict': 8, 'agri-food': 10, 'materials': 5} },
+                'ainshams': { projects: 38, sectors: {'health': 15, 'engineering': 8, 'ict': 6, 'agri-food': 7, 'materials': 2} },
+                'alexandria': { projects: 32, sectors: {'health': 8, 'engineering': 9, 'ict': 5, 'agri-food': 8, 'materials': 2} },
+                'nile': { projects: 28, sectors: {'health': 5, 'engineering': 6, 'ict': 12, 'agri-food': 4, 'materials': 1} },
+                'zewail': { projects: 24, sectors: {'health': 8, 'engineering': 5, 'ict': 3, 'agri-food': 6, 'materials': 2} }
             },
             kpis: {
                 projects: 215,
@@ -979,10 +1001,10 @@
             charts.funnel = new Chart(funnelCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['TRL 1-3: Idea/Proof', 'TRL 4-5: Prototype', 'TRL 6-7: Pilot', 'TRL 8-9: Commercial'],
+                    labels: originalData.funnel.labels,
                     datasets: [{
                         label: 'Projects Count',
-                        data: filteredData.funnel,
+                        data: originalData.funnel.data,
                         backgroundColor: [
                             'rgba(30, 60, 139, 0.9)',
                             'rgba(59, 130, 246, 0.8)',
@@ -1051,7 +1073,7 @@
                     labels: ['Funding Gap', 'Regulatory', 'Industry Partner', 'Manufacturing', 'IP/FTO', 'Talent Gap'],
                     datasets: [{
                         label: 'Bottleneck Impact (%)',
-                        data: filteredData.bottlenecks,
+                        data: originalData.bottlenecks,
                         backgroundColor: 'rgba(30, 60, 139, 0.2)',
                         borderColor: 'rgba(30, 60, 139, 1)',
                         borderWidth: 2,
@@ -1080,7 +1102,7 @@
                 data: {
                     labels: ['0-2%', '2-5%', '5-8%', '8%+'],
                     datasets: [{
-                        data: filteredData.royalty,
+                        data: originalData.royalty,
                         backgroundColor: [
                             'rgba(219, 234, 254, 1)',
                             'rgba(59, 130, 246, 1)',
@@ -1103,7 +1125,7 @@
                 data: {
                     labels: ['Royalty License', 'Spin-out', 'Assignment', 'Revenue Share', 'JV'],
                     datasets: [{
-                        data: filteredData.dealType,
+                        data: originalData.dealType,
                         backgroundColor: 'rgba(30, 60, 139, 0.8)',
                         borderColor: 'rgba(30, 60, 139, 1)',
                         borderWidth: 1
@@ -1127,15 +1149,15 @@
             charts.sector = new Chart(sectorCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['Health', 'Engineering', 'ICT', 'Agri-food', 'Materials'],
+                    labels: originalData.sector.labels,
                     datasets: [{
-                        label: 'Project Distribution (%)',
-                        data: filteredData.sector.distribution,
+                        label: 'Project Distribution',
+                        data: originalData.sector.distribution,
                         backgroundColor: 'rgba(30, 60, 139, 0.6)',
                         yAxisID: 'y'
                     }, {
                         label: 'Success Rate (%)',
-                        data: filteredData.sector.success,
+                        data: originalData.sector.success,
                         backgroundColor: 'rgba(59, 130, 246, 0.8)',
                         yAxisID: 'y1'
                     }]
@@ -1148,7 +1170,7 @@
                             type: 'linear',
                             display: true,
                             position: 'left',
-                            title: { display: true, text: 'Project Distribution (%)' }
+                            title: { display: true, text: 'Project Count' }
                         },
                         y1: {
                             type: 'linear',
@@ -1197,38 +1219,215 @@
         }
 
         function applyFilters() {
-            // Calculate filter impact (simplified simulation)
-            let filterMultiplier = 1.0;
+            // Calculate filtered data based on actual selections
+            const hasFilters = activeFilters.sector.length > 0 || activeFilters.trl.length > 0 || 
+                              activeFilters.institution.length > 0 || activeFilters.time.length > 0;
             
-            // Reduce data based on filters
-            if (activeFilters.sector.length > 0) {
-                filterMultiplier *= (activeFilters.sector.length / 6); // 6 total sectors
-            }
-            if (activeFilters.trl.length > 0) {
-                filterMultiplier *= (activeFilters.trl.length / 4); // 4 total TRL stages
-            }
-            if (activeFilters.institution.length > 0) {
-                filterMultiplier *= (activeFilters.institution.length / 5); // 5 total institutions
-            }
-            if (activeFilters.time.length > 0) {
-                filterMultiplier *= (activeFilters.time.length / 6); // 6 total time periods
+            if (!hasFilters) {
+                resetToOriginalData();
+                return;
             }
 
-            // Apply filters to data
-            filteredData.funnel = originalData.funnel.map(val => Math.round(val * filterMultiplier));
+            // Filter funnel data by TRL stages
+            filteredData.funnel = filterFunnelData();
+            
+            // Filter sector data by selected sectors
+            filteredData.sector = filterSectorData();
+            
+            // Other charts remain proportional for now (can be enhanced with specific data)
+            const filterMultiplier = calculateFilterMultiplier();
             filteredData.bottlenecks = originalData.bottlenecks.map(val => Math.round(val * (0.8 + filterMultiplier * 0.2)));
             filteredData.royalty = originalData.royalty.map(val => Math.round(val * (0.9 + filterMultiplier * 0.1)));
             filteredData.dealType = originalData.dealType.map(val => Math.round(val * (0.85 + filterMultiplier * 0.15)));
-            filteredData.sector.distribution = originalData.sector.distribution.map(val => Math.round(val * filterMultiplier));
-            filteredData.sector.success = originalData.sector.success.map(val => Math.round(val * (0.9 + filterMultiplier * 0.1)));
 
-            // Update KPIs
-            filteredData.kpis.projects = Math.round(originalData.kpis.projects * filterMultiplier);
-            filteredData.kpis.events = Math.round(originalData.kpis.events * filterMultiplier);
-            
+            // Calculate filtered KPIs
+            filteredData.kpis = calculateFilteredKPIs();
+
             // Update charts
             updateCharts();
             updateKPIs();
+        }
+
+        function filterFunnelData() {
+            const selectedTRL = activeFilters.trl.length > 0 ? activeFilters.trl : ['1-3', '4-5', '6-7', '8-9'];
+            const selectedSectors = activeFilters.sector.length > 0 ? activeFilters.sector : Object.keys(originalData.projectsBySector);
+            const selectedInstitutions = activeFilters.institution.length > 0 ? activeFilters.institution : Object.keys(originalData.projectsByInstitution);
+            
+            const funnelData = [0, 0, 0, 0]; // TRL 1-3, 4-5, 6-7, 8-9
+            const funnelLabels = [];
+            
+            // Calculate projects for each TRL stage based on selected filters
+            selectedTRL.forEach((trlStage, index) => {
+                const trlIndex = originalData.funnel.trlMap.indexOf(trlStage);
+                if (trlIndex === -1) return;
+                
+                let stageTotal = 0;
+                
+                // Sum projects from selected sectors for this TRL stage
+                selectedSectors.forEach(sector => {
+                    if (originalData.projectsBySector[sector] && originalData.projectsBySector[sector].trl[trlStage]) {
+                        // Apply institution filter if selected
+                        let sectorProjects = originalData.projectsBySector[sector].trl[trlStage];
+                        
+                        if (activeFilters.institution.length > 0) {
+                            // Reduce based on institution selection (simplified)
+                            const institutionMultiplier = selectedInstitutions.length / Object.keys(originalData.projectsByInstitution).length;
+                            sectorProjects = Math.round(sectorProjects * institutionMultiplier);
+                        }
+                        
+                        stageTotal += sectorProjects;
+                    }
+                });
+                
+                funnelData[trlIndex] = stageTotal;
+                funnelLabels.push(originalData.funnel.labels[trlIndex]);
+            });
+            
+            return {
+                data: funnelData,
+                labels: funnelLabels
+            };
+        }
+
+        function filterSectorData() {
+            const selectedSectors = activeFilters.sector.length > 0 ? activeFilters.sector : originalData.sector.sectorMap;
+            const selectedInstitutions = activeFilters.institution.length > 0 ? activeFilters.institution : Object.keys(originalData.projectsByInstitution);
+            
+            const sectorData = {
+                labels: [],
+                distribution: [],
+                success: []
+            };
+            
+            selectedSectors.forEach(sector => {
+                const sectorIndex = originalData.sector.sectorMap.indexOf(sector);
+                if (sectorIndex === -1) return;
+                
+                let sectorProjects = originalData.projectsBySector[sector]?.projects || 0;
+                
+                // Apply institution filter
+                if (activeFilters.institution.length > 0) {
+                    let institutionProjectsForSector = 0;
+                    selectedInstitutions.forEach(institution => {
+                        if (originalData.projectsByInstitution[institution]?.sectors[sector]) {
+                            institutionProjectsForSector += originalData.projectsByInstitution[institution].sectors[sector];
+                        }
+                    });
+                    sectorProjects = institutionProjectsForSector;
+                }
+                
+                // Apply TRL filter
+                if (activeFilters.trl.length > 0) {
+                    let trlFilteredProjects = 0;
+                    activeFilters.trl.forEach(trlStage => {
+                        if (originalData.projectsBySector[sector]?.trl[trlStage]) {
+                            trlFilteredProjects += originalData.projectsBySector[sector].trl[trlStage];
+                        }
+                    });
+                    sectorProjects = Math.min(sectorProjects, trlFilteredProjects);
+                }
+                
+                if (sectorProjects > 0) {
+                    sectorData.labels.push(originalData.sector.labels[sectorIndex]);
+                    sectorData.distribution.push(sectorProjects);
+                    sectorData.success.push(originalData.sector.success[sectorIndex]);
+                }
+            });
+            
+            return sectorData;
+        }
+
+        function calculateFilteredKPIs() {
+            let totalProjects = 0;
+            let totalEvents = 0;
+            
+            // Calculate total projects based on filters
+            if (activeFilters.sector.length > 0) {
+                activeFilters.sector.forEach(sector => {
+                    if (originalData.projectsBySector[sector]) {
+                        let sectorProjects = originalData.projectsBySector[sector].projects;
+                        
+                        // Apply TRL filter
+                        if (activeFilters.trl.length > 0) {
+                            sectorProjects = 0;
+                            activeFilters.trl.forEach(trlStage => {
+                                if (originalData.projectsBySector[sector].trl[trlStage]) {
+                                    sectorProjects += originalData.projectsBySector[sector].trl[trlStage];
+                                }
+                            });
+                        }
+                        
+                        // Apply institution filter
+                        if (activeFilters.institution.length > 0) {
+                            let institutionProjects = 0;
+                            activeFilters.institution.forEach(institution => {
+                                if (originalData.projectsByInstitution[institution]?.sectors[sector]) {
+                                    institutionProjects += originalData.projectsByInstitution[institution].sectors[sector];
+                                }
+                            });
+                            sectorProjects = Math.min(sectorProjects, institutionProjects);
+                        }
+                        
+                        totalProjects += sectorProjects;
+                    }
+                });
+            } else {
+                // No sector filter, sum all sectors
+                Object.keys(originalData.projectsBySector).forEach(sector => {
+                    let sectorProjects = originalData.projectsBySector[sector].projects;
+                    
+                    if (activeFilters.trl.length > 0) {
+                        sectorProjects = 0;
+                        activeFilters.trl.forEach(trlStage => {
+                            if (originalData.projectsBySector[sector].trl[trlStage]) {
+                                sectorProjects += originalData.projectsBySector[sector].trl[trlStage];
+                            }
+                        });
+                    }
+                    
+                    if (activeFilters.institution.length > 0) {
+                        let institutionProjects = 0;
+                        activeFilters.institution.forEach(institution => {
+                            if (originalData.projectsByInstitution[institution]?.sectors[sector]) {
+                                institutionProjects += originalData.projectsByInstitution[institution].sectors[sector];
+                            }
+                        });
+                        sectorProjects = Math.min(sectorProjects, institutionProjects);
+                    }
+                    
+                    totalProjects += sectorProjects;
+                });
+            }
+            
+            // Calculate events proportionally
+            totalEvents = Math.round((totalProjects / originalData.kpis.projects) * originalData.kpis.events);
+            
+            return {
+                projects: totalProjects,
+                events: totalEvents,
+                revenue: (4.2 * (totalProjects / originalData.kpis.projects)).toFixed(1),
+                successRate: originalData.kpis.successRate,
+                dealCycle: originalData.kpis.dealCycle
+            };
+        }
+
+        function calculateFilterMultiplier() {
+            let filterMultiplier = 1.0;
+            
+            if (activeFilters.sector.length > 0) {
+                filterMultiplier *= (activeFilters.sector.length / 6);
+            }
+            if (activeFilters.trl.length > 0) {
+                filterMultiplier *= (activeFilters.trl.length / 4);
+            }
+            if (activeFilters.institution.length > 0) {
+                filterMultiplier *= (activeFilters.institution.length / 5);
+            }
+            if (activeFilters.time.length > 0) {
+                filterMultiplier *= (activeFilters.time.length / 6);
+            }
+            
+            return filterMultiplier;
         }
 
         function resetToOriginalData() {
@@ -1238,9 +1437,35 @@
         }
 
         function updateCharts() {
-            charts.funnel.data.datasets[0].data = filteredData.funnel;
+            // Update funnel chart
+            if (filteredData.funnel && filteredData.funnel.data) {
+                charts.funnel.data.labels = filteredData.funnel.labels || originalData.funnel.labels;
+                charts.funnel.data.datasets[0].data = filteredData.funnel.data;
+                
+                // Update colors based on visible stages
+                const colors = ['rgba(30, 60, 139, 0.9)', 'rgba(59, 130, 246, 0.8)', 'rgba(147, 197, 253, 0.8)', 'rgba(219, 234, 254, 0.8)'];
+                const borderColors = ['rgba(30, 60, 139, 1)', 'rgba(59, 130, 246, 1)', 'rgba(147, 197, 253, 1)', 'rgba(219, 234, 254, 1)'];
+                
+                charts.funnel.data.datasets[0].backgroundColor = filteredData.funnel.data.map((_, index) => colors[index] || colors[0]);
+                charts.funnel.data.datasets[0].borderColor = filteredData.funnel.data.map((_, index) => borderColors[index] || borderColors[0]);
+            } else {
+                charts.funnel.data.datasets[0].data = filteredData.funnel || originalData.funnel.data;
+            }
             charts.funnel.update();
 
+            // Update sector chart
+            if (filteredData.sector && filteredData.sector.labels) {
+                charts.sector.data.labels = filteredData.sector.labels;
+                charts.sector.data.datasets[0].data = filteredData.sector.distribution;
+                charts.sector.data.datasets[1].data = filteredData.sector.success;
+            } else {
+                charts.sector.data.labels = originalData.sector.labels;
+                charts.sector.data.datasets[0].data = originalData.sector.distribution;
+                charts.sector.data.datasets[1].data = originalData.sector.success;
+            }
+            charts.sector.update();
+
+            // Update other charts
             charts.bottlenecks.data.datasets[0].data = filteredData.bottlenecks;
             charts.bottlenecks.update();
 
@@ -1249,20 +1474,13 @@
 
             charts.dealType.data.datasets[0].data = filteredData.dealType;
             charts.dealType.update();
-
-            charts.sector.data.datasets[0].data = filteredData.sector.distribution;
-            charts.sector.data.datasets[1].data = filteredData.sector.success;
-            charts.sector.update();
         }
 
         function updateKPIs() {
-            document.querySelector('.kpi-card:nth-child(1) .kpi-value').textContent = filteredData.kpis.projects;
-            document.querySelector('.kpi-card:nth-child(2) .kpi-value').textContent = filteredData.kpis.events;
-            
-            // Calculate revenue based on projects
-            const revenueMultiplier = filteredData.kpis.projects / originalData.kpis.projects;
-            const newRevenue = (4.2 * revenueMultiplier).toFixed(1);
-            document.querySelector('.kpi-card:nth-child(3) .kpi-value').textContent = `EGP ${newRevenue}M`;
+            const kpis = filteredData.kpis || originalData.kpis;
+            document.querySelector('.kpi-card:nth-child(1) .kpi-value').textContent = kpis.projects;
+            document.querySelector('.kpi-card:nth-child(2) .kpi-value').textContent = kpis.events;
+            document.querySelector('.kpi-card:nth-child(3) .kpi-value').textContent = `EGP ${kpis.revenue}M`;
         }
 
         function updateFilterSummary() {
