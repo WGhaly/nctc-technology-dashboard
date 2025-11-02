@@ -34,6 +34,10 @@
             background-color: var(--background);
             color: var(--text-dark);
             line-height: 1.6;
+            -webkit-text-size-adjust: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            touch-action: manipulation;
         }
 
         .header {
@@ -124,6 +128,10 @@
             background: var(--white);
             font-size: 0.9rem;
             min-width: 120px;
+            min-height: 44px; /* Touch-friendly minimum height */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
 
         /* Multi-select styles */
@@ -137,8 +145,8 @@
             background: var(--white);
             border: 1px solid var(--border);
             border-radius: 4px;
-            min-height: 38px;
-            padding: 4px 8px;
+            min-height: 44px; /* Touch-friendly height */
+            padding: 6px 12px;
         }
 
         .choices__list--multiple .choices__item {
@@ -191,6 +199,8 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             padding: 1.5rem;
             border: 1px solid var(--border);
+            overflow: hidden;
+            position: relative;
         }
 
         .chart-card h3 {
@@ -206,6 +216,196 @@
         .half-width { grid-column: span 6; }
         .third-width { grid-column: span 4; }
         .two-thirds { grid-column: span 8; }
+
+        /* Mobile Responsive Design */
+        @media (max-width: 768px) {
+            /* Prevent horizontal scroll */
+            html, body {
+                overflow-x: hidden;
+                width: 100%;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .logo-section {
+                justify-content: center;
+            }
+            
+            .title-section h1 {
+                font-size: 1.5rem;
+            }
+            
+            .title-section p {
+                font-size: 0.8rem;
+            }
+            
+            .filters-bar {
+                padding: 1rem;
+            }
+            
+            .filters-content {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                width: 100%;
+            }
+            
+            .choices {
+                min-width: 100%;
+            }
+            
+            .filter-summary {
+                margin-left: 0;
+                text-align: center;
+            }
+            
+            .dashboard-container {
+                padding: 1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            /* All charts become full width on mobile */
+            .full-width,
+            .half-width,
+            .third-width,
+            .two-thirds {
+                grid-column: span 1;
+            }
+            
+            .chart-card {
+                padding: 1rem;
+            }
+            
+            .chart-card h3 {
+                font-size: 1rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            /* Make charts more mobile-friendly */
+            .chart-card canvas {
+                max-height: 300px !important;
+            }
+            
+            /* Stage info layout for mobile */
+            .stage-info {
+                min-width: 150px;
+                font-size: 0.9rem;
+            }
+            
+            .pipeline-stage {
+                flex-direction: column;
+                gap: 0.5rem;
+                text-align: center;
+            }
+            
+            .stage-bar {
+                order: 2;
+                width: 100%;
+            }
+            
+            /* KPI grid for mobile */
+            .kpi-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.5rem;
+            }
+        }
+
+        /* Tablet responsive design */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .header {
+                padding: 1rem 1.5rem;
+            }
+            
+            .filters-bar {
+                padding: 1rem 1.5rem;
+            }
+            
+            .dashboard-container {
+                padding: 1.5rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: repeat(8, 1fr);
+            }
+            
+            .half-width { grid-column: span 4; }
+            .third-width { grid-column: span 4; }
+            .two-thirds { grid-column: span 8; }
+            
+            .filters-content {
+                gap: 0.75rem;
+            }
+            
+            .choices {
+                min-width: 150px;
+            }
+        }
+
+        /* Small mobile devices */
+        @media (max-width: 480px) {
+            .header {
+                padding: 0.75rem;
+            }
+            
+            .logo {
+                width: 50px;
+                height: 50px;
+                font-size: 1rem;
+            }
+            
+            .title-section h1 {
+                font-size: 1.25rem;
+            }
+            
+            .title-section p {
+                font-size: 0.75rem;
+            }
+            
+            .dashboard-container {
+                padding: 0.75rem;
+            }
+            
+            .chart-card {
+                padding: 0.75rem;
+            }
+            
+            .chart-card h3 {
+                font-size: 0.9rem;
+            }
+            
+            .chart-card canvas {
+                max-height: 250px !important;
+            }
+            
+            .filter-group label {
+                font-size: 0.75rem;
+            }
+            
+            .choices__inner {
+                min-height: 44px;
+                padding: 6px 12px;
+            }
+            
+            .choices__list--multiple .choices__item {
+                font-size: 0.7rem;
+                padding: 2px 6px;
+            }
+        }
 
         .pipeline-stage {
             display: flex;
