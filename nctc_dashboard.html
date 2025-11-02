@@ -6,6 +6,8 @@
     <title>NCTC Technology Commercialization Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     <style>
         :root {
             --primary-blue: #1e3c8b;
@@ -122,6 +124,53 @@
             background: var(--white);
             font-size: 0.9rem;
             min-width: 120px;
+        }
+
+        /* Multi-select styles */
+        .choices {
+            margin-bottom: 0;
+            font-size: 0.9rem;
+            min-width: 180px;
+        }
+
+        .choices__inner {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            min-height: 38px;
+            padding: 4px 8px;
+        }
+
+        .choices__list--multiple .choices__item {
+            background: var(--primary-blue);
+            border: 1px solid var(--primary-blue);
+            color: var(--white);
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+
+        .choices__list--multiple .choices__item.choices__item--selectable {
+            border-right-width: 1px;
+        }
+
+        .choices__list--dropdown {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--white);
+        }
+
+        .choices__item--choice.choices__item--selectable.is-highlighted {
+            background: var(--light-blue);
+            color: var(--primary-blue);
+        }
+
+        .filter-summary {
+            background: var(--light-blue);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--primary-blue);
+            margin-left: auto;
         }
 
         .dashboard-container {
@@ -398,19 +447,18 @@
         <div class="filters-content">
             <div class="filter-group">
                 <label>Sector</label>
-                <select id="sectorFilter">
-                    <option value="all">All Sectors</option>
+                <select id="sectorFilter" multiple>
                     <option value="health">Health</option>
                     <option value="engineering">Engineering</option>
                     <option value="ict">ICT</option>
                     <option value="agri-food">Agri-food</option>
                     <option value="materials">Materials</option>
+                    <option value="energy">Energy</option>
                 </select>
             </div>
             <div class="filter-group">
                 <label>TRL Stage</label>
-                <select id="trlFilter">
-                    <option value="all">All Stages</option>
+                <select id="trlFilter" multiple>
                     <option value="1-3">TRL 1-3 (Idea/Proof)</option>
                     <option value="4-5">TRL 4-5 (Prototype)</option>
                     <option value="6-7">TRL 6-7 (Pilot)</option>
@@ -419,8 +467,7 @@
             </div>
             <div class="filter-group">
                 <label>Institution</label>
-                <select id="institutionFilter">
-                    <option value="all">All Institutions</option>
+                <select id="institutionFilter" multiple>
                     <option value="cairo">Cairo University</option>
                     <option value="ainshams">Ain Shams University</option>
                     <option value="alexandria">Alexandria University</option>
@@ -430,13 +477,24 @@
             </div>
             <div class="filter-group">
                 <label>Time Period</label>
-                <select id="timeFilter">
-                    <option value="all">All Time</option>
+                <select id="timeFilter" multiple>
                     <option value="2024">2024</option>
                     <option value="2023">2023</option>
                     <option value="q4-2024">Q4 2024</option>
                     <option value="q3-2024">Q3 2024</option>
+                    <option value="q2-2024">Q2 2024</option>
+                    <option value="q1-2024">Q1 2024</option>
                 </select>
+            </div>
+            <div class="filter-group">
+                <label>Actions</label>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                    <button id="clearFilters" style="padding: 0.5rem 1rem; background: var(--danger); color: white; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">Clear All</button>
+                    <button id="applyFilters" style="padding: 0.5rem 1rem; background: var(--success); color: white; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">Apply</button>
+                </div>
+            </div>
+            <div class="filter-summary" id="filterSummary">
+                Showing all data
             </div>
         </div>
     </div>
@@ -840,19 +898,91 @@
     </div>
 
     <script>
+        // Global variables for charts and data
+        let charts = {};
+        let originalData = {
+            funnel: [85, 62, 41, 27],
+            bottlenecks: [35, 25, 20, 15, 8, 7],
+            royalty: [25, 45, 30, 5],
+            dealType: [40, 25, 15, 12, 8],
+            sector: {
+                distribution: [28, 22, 16, 26, 8],
+                success: [42, 35, 18, 38, 32]
+            },
+            kpis: {
+                projects: 215,
+                events: 38,
+                revenue: 'EGP 4.2M',
+                successRate: '52%',
+                dealCycle: 88
+            }
+        };
+
+        let filteredData = JSON.parse(JSON.stringify(originalData));
+        let activeFilters = {
+            sector: [],
+            trl: [],
+            institution: [],
+            time: []
+        };
+
         // Initialize Charts
         document.addEventListener('DOMContentLoaded', function() {
+            initializeMultiSelect();
+            initializeCharts();
+            setupFilterEvents();
+        });
+
+        function initializeMultiSelect() {
+            // Initialize Choices.js for multi-select dropdowns
+            const sectorChoice = new Choices('#sectorFilter', {
+                removeItemButton: true,
+                placeholder: true,
+                placeholderValue: 'Select sectors...',
+                searchEnabled: false
+            });
+
+            const trlChoice = new Choices('#trlFilter', {
+                removeItemButton: true,
+                placeholder: true,
+                placeholderValue: 'Select TRL stages...',
+                searchEnabled: false
+            });
+
+            const institutionChoice = new Choices('#institutionFilter', {
+                removeItemButton: true,
+                placeholder: true,
+                placeholderValue: 'Select institutions...',
+                searchEnabled: false
+            });
+
+            const timeChoice = new Choices('#timeFilter', {
+                removeItemButton: true,
+                placeholder: true,
+                placeholderValue: 'Select time periods...',
+                searchEnabled: false
+            });
+
+            // Store choices instances globally
+            window.filterChoices = {
+                sector: sectorChoice,
+                trl: trlChoice,
+                institution: institutionChoice,
+                time: timeChoice
+            };
+        }
+
+        function initializeCharts() {
             // Funnel Chart for TRL Pipeline
             const funnelCtx = document.getElementById('funnelChart').getContext('2d');
             
-            // Custom funnel chart using Chart.js
-            new Chart(funnelCtx, {
+            charts.funnel = new Chart(funnelCtx, {
                 type: 'bar',
                 data: {
                     labels: ['TRL 1-3: Idea/Proof', 'TRL 4-5: Prototype', 'TRL 6-7: Pilot', 'TRL 8-9: Commercial'],
                     datasets: [{
                         label: 'Projects Count',
-                        data: [85, 62, 41, 27],
+                        data: filteredData.funnel,
                         backgroundColor: [
                             'rgba(30, 60, 139, 0.9)',
                             'rgba(59, 130, 246, 0.8)',
@@ -875,9 +1005,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -903,85 +1031,27 @@
                         x: {
                             beginAtZero: true,
                             max: 100,
-                            title: {
-                                display: true,
-                                text: 'Number of Projects'
-                            },
-                            grid: {
-                                color: 'rgba(30, 60, 139, 0.1)'
-                            }
+                            title: { display: true, text: 'Number of Projects' },
+                            grid: { color: 'rgba(30, 60, 139, 0.1)' }
                         },
                         y: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: {
-                                    size: 12,
-                                    weight: '600'
-                                }
-                            }
+                            grid: { display: false },
+                            ticks: { font: { size: 12, weight: '600' } }
                         }
                     },
-                    layout: {
-                        padding: {
-                            top: 20,
-                            right: 20,
-                            bottom: 20,
-                            left: 20
-                        }
-                    }
+                    layout: { padding: { top: 20, right: 20, bottom: 20, left: 20 } }
                 }
             });
 
-            // Add custom funnel visualization overlay
-            setTimeout(() => {
-                const canvas = document.getElementById('funnelChart');
-                const ctx = canvas.getContext('2d');
-                const chart = Chart.getChart(canvas);
-                
-                // Draw funnel connecting lines
-                const drawFunnelLines = () => {
-                    const meta = chart.getDatasetMeta(0);
-                    const bars = meta.data;
-                    
-                    ctx.save();
-                    ctx.strokeStyle = 'rgba(30, 60, 139, 0.3)';
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([5, 5]);
-                    
-                    for (let i = 0; i < bars.length - 1; i++) {
-                        const currentBar = bars[i];
-                        const nextBar = bars[i + 1];
-                        
-                        // Draw connecting line from right edge of current bar to left edge of next bar
-                        ctx.beginPath();
-                        ctx.moveTo(currentBar.x + currentBar.width / 2, currentBar.y + currentBar.height / 2);
-                        ctx.lineTo(nextBar.x - nextBar.width / 2, nextBar.y - nextBar.height / 2);
-                        ctx.stroke();
-                    }
-                    
-                    ctx.restore();
-                };
-                
-                // Override the draw method to include funnel lines
-                const originalDraw = chart.draw;
-                chart.draw = function() {
-                    originalDraw.call(this);
-                    drawFunnelLines();
-                };
-                
-                chart.update('none');
-            }, 100);
             // Bottlenecks Radar Chart
             const bottlenecksCtx = document.getElementById('bottlenecksChart').getContext('2d');
-            new Chart(bottlenecksCtx, {
+            charts.bottlenecks = new Chart(bottlenecksCtx, {
                 type: 'radar',
                 data: {
                     labels: ['Funding Gap', 'Regulatory', 'Industry Partner', 'Manufacturing', 'IP/FTO', 'Talent Gap'],
                     datasets: [{
                         label: 'Bottleneck Impact (%)',
-                        data: [35, 25, 20, 15, 8, 7],
+                        data: filteredData.bottlenecks,
                         backgroundColor: 'rgba(30, 60, 139, 0.2)',
                         borderColor: 'rgba(30, 60, 139, 1)',
                         borderWidth: 2,
@@ -995,32 +1065,22 @@
                         r: {
                             beginAtZero: true,
                             max: 40,
-                            grid: {
-                                color: 'rgba(30, 60, 139, 0.1)'
-                            },
-                            pointLabels: {
-                                font: {
-                                    size: 11
-                                }
-                            }
+                            grid: { color: 'rgba(30, 60, 139, 0.1)' },
+                            pointLabels: { font: { size: 11 } }
                         }
                     },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
 
             // Royalty Rate Chart
             const royaltyCtx = document.getElementById('royaltyChart').getContext('2d');
-            new Chart(royaltyCtx, {
+            charts.royalty = new Chart(royaltyCtx, {
                 type: 'doughnut',
                 data: {
                     labels: ['0-2%', '2-5%', '5-8%', '8%+'],
                     datasets: [{
-                        data: [25, 45, 30, 5],
+                        data: filteredData.royalty,
                         backgroundColor: [
                             'rgba(219, 234, 254, 1)',
                             'rgba(59, 130, 246, 1)',
@@ -1032,22 +1092,18 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
+                    plugins: { legend: { position: 'bottom' } }
                 }
             });
 
             // Deal Type Chart
             const dealTypeCtx = document.getElementById('dealTypeChart').getContext('2d');
-            new Chart(dealTypeCtx, {
+            charts.dealType = new Chart(dealTypeCtx, {
                 type: 'bar',
                 data: {
                     labels: ['Royalty License', 'Spin-out', 'Assignment', 'Revenue Share', 'JV'],
                     datasets: [{
-                        data: [40, 25, 15, 12, 8],
+                        data: filteredData.dealType,
                         backgroundColor: 'rgba(30, 60, 139, 0.8)',
                         borderColor: 'rgba(30, 60, 139, 1)',
                         borderWidth: 1
@@ -1056,18 +1112,11 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Percentage (%)'
-                            }
+                            title: { display: true, text: 'Percentage (%)' }
                         }
                     }
                 }
@@ -1075,18 +1124,18 @@
 
             // Sector Performance Chart
             const sectorCtx = document.getElementById('sectorChart').getContext('2d');
-            new Chart(sectorCtx, {
+            charts.sector = new Chart(sectorCtx, {
                 type: 'bar',
                 data: {
                     labels: ['Health', 'Engineering', 'ICT', 'Agri-food', 'Materials'],
                     datasets: [{
                         label: 'Project Distribution (%)',
-                        data: [28, 22, 16, 26, 8],
+                        data: filteredData.sector.distribution,
                         backgroundColor: 'rgba(30, 60, 139, 0.6)',
                         yAxisID: 'y'
                     }, {
                         label: 'Success Rate (%)',
-                        data: [42, 35, 18, 38, 32],
+                        data: filteredData.sector.success,
                         backgroundColor: 'rgba(59, 130, 246, 0.8)',
                         yAxisID: 'y1'
                     }]
@@ -1099,42 +1148,139 @@
                             type: 'linear',
                             display: true,
                             position: 'left',
-                            title: {
-                                display: true,
-                                text: 'Project Distribution (%)'
-                            }
+                            title: { display: true, text: 'Project Distribution (%)' }
                         },
                         y1: {
                             type: 'linear',
                             display: true,
                             position: 'right',
-                            title: {
-                                display: true,
-                                text: 'Success Rate (%)'
-                            },
-                            grid: {
-                                drawOnChartArea: false,
-                            },
+                            title: { display: true, text: 'Success Rate (%)' },
+                            grid: { drawOnChartArea: false }
                         }
                     }
                 }
             });
+        }
 
-            // Filter functionality
-            const filters = ['sectorFilter', 'trlFilter', 'institutionFilter', 'timeFilter'];
-            filters.forEach(filterId => {
-                document.getElementById(filterId).addEventListener('change', function() {
-                    console.log(`Filter ${filterId} changed to:`, this.value);
-                    // Add filter logic here
-                    updateDashboard();
+        function setupFilterEvents() {
+            // Clear filters button
+            document.getElementById('clearFilters').addEventListener('click', function() {
+                Object.values(window.filterChoices).forEach(choice => {
+                    choice.removeActiveItems();
                 });
+                activeFilters = { sector: [], trl: [], institution: [], time: [] };
+                resetToOriginalData();
+                updateFilterSummary();
             });
 
-            function updateDashboard() {
-                // This would typically update all charts and data based on selected filters
-                console.log('Dashboard updated with current filter selections');
+            // Apply filters button
+            document.getElementById('applyFilters').addEventListener('click', function() {
+                collectActiveFilters();
+                applyFilters();
+                updateFilterSummary();
+            });
+
+            // Listen for changes on filter selects
+            ['sectorFilter', 'trlFilter', 'institutionFilter', 'timeFilter'].forEach(filterId => {
+                document.getElementById(filterId).addEventListener('change', function() {
+                    collectActiveFilters();
+                    updateFilterSummary();
+                });
+            });
+        }
+
+        function collectActiveFilters() {
+            activeFilters.sector = window.filterChoices.sector.getValue(true);
+            activeFilters.trl = window.filterChoices.trl.getValue(true);
+            activeFilters.institution = window.filterChoices.institution.getValue(true);
+            activeFilters.time = window.filterChoices.time.getValue(true);
+        }
+
+        function applyFilters() {
+            // Calculate filter impact (simplified simulation)
+            let filterMultiplier = 1.0;
+            
+            // Reduce data based on filters
+            if (activeFilters.sector.length > 0) {
+                filterMultiplier *= (activeFilters.sector.length / 6); // 6 total sectors
             }
-        });
+            if (activeFilters.trl.length > 0) {
+                filterMultiplier *= (activeFilters.trl.length / 4); // 4 total TRL stages
+            }
+            if (activeFilters.institution.length > 0) {
+                filterMultiplier *= (activeFilters.institution.length / 5); // 5 total institutions
+            }
+            if (activeFilters.time.length > 0) {
+                filterMultiplier *= (activeFilters.time.length / 6); // 6 total time periods
+            }
+
+            // Apply filters to data
+            filteredData.funnel = originalData.funnel.map(val => Math.round(val * filterMultiplier));
+            filteredData.bottlenecks = originalData.bottlenecks.map(val => Math.round(val * (0.8 + filterMultiplier * 0.2)));
+            filteredData.royalty = originalData.royalty.map(val => Math.round(val * (0.9 + filterMultiplier * 0.1)));
+            filteredData.dealType = originalData.dealType.map(val => Math.round(val * (0.85 + filterMultiplier * 0.15)));
+            filteredData.sector.distribution = originalData.sector.distribution.map(val => Math.round(val * filterMultiplier));
+            filteredData.sector.success = originalData.sector.success.map(val => Math.round(val * (0.9 + filterMultiplier * 0.1)));
+
+            // Update KPIs
+            filteredData.kpis.projects = Math.round(originalData.kpis.projects * filterMultiplier);
+            filteredData.kpis.events = Math.round(originalData.kpis.events * filterMultiplier);
+            
+            // Update charts
+            updateCharts();
+            updateKPIs();
+        }
+
+        function resetToOriginalData() {
+            filteredData = JSON.parse(JSON.stringify(originalData));
+            updateCharts();
+            updateKPIs();
+        }
+
+        function updateCharts() {
+            charts.funnel.data.datasets[0].data = filteredData.funnel;
+            charts.funnel.update();
+
+            charts.bottlenecks.data.datasets[0].data = filteredData.bottlenecks;
+            charts.bottlenecks.update();
+
+            charts.royalty.data.datasets[0].data = filteredData.royalty;
+            charts.royalty.update();
+
+            charts.dealType.data.datasets[0].data = filteredData.dealType;
+            charts.dealType.update();
+
+            charts.sector.data.datasets[0].data = filteredData.sector.distribution;
+            charts.sector.data.datasets[1].data = filteredData.sector.success;
+            charts.sector.update();
+        }
+
+        function updateKPIs() {
+            document.querySelector('.kpi-card:nth-child(1) .kpi-value').textContent = filteredData.kpis.projects;
+            document.querySelector('.kpi-card:nth-child(2) .kpi-value').textContent = filteredData.kpis.events;
+            
+            // Calculate revenue based on projects
+            const revenueMultiplier = filteredData.kpis.projects / originalData.kpis.projects;
+            const newRevenue = (4.2 * revenueMultiplier).toFixed(1);
+            document.querySelector('.kpi-card:nth-child(3) .kpi-value').textContent = `EGP ${newRevenue}M`;
+        }
+
+        function updateFilterSummary() {
+            const totalFilters = activeFilters.sector.length + activeFilters.trl.length + 
+                               activeFilters.institution.length + activeFilters.time.length;
+            
+            if (totalFilters === 0) {
+                document.getElementById('filterSummary').textContent = 'Showing all data';
+            } else {
+                const filterTexts = [];
+                if (activeFilters.sector.length > 0) filterTexts.push(`${activeFilters.sector.length} sectors`);
+                if (activeFilters.trl.length > 0) filterTexts.push(`${activeFilters.trl.length} TRL stages`);
+                if (activeFilters.institution.length > 0) filterTexts.push(`${activeFilters.institution.length} institutions`);
+                if (activeFilters.time.length > 0) filterTexts.push(`${activeFilters.time.length} periods`);
+                
+                document.getElementById('filterSummary').textContent = `Filtered by: ${filterTexts.join(', ')}`;
+            }
+        }
     </script>
 </body>
 </html>
