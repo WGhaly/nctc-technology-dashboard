@@ -1,0 +1,5 @@
+stage_type,stage_name,actual_days,sla_days,status,variance_days
+"TRL Stage","TRL 1-3",45,60,"✅ On Track",-15
+"TRL Stage","TRL 4-5",68,90,"✅ On Track",-22
+"TRL Stage","TRL 6-7",85,120,"✅ On Track",-35
+"Process","Deal Negotiation",32,45,"✅ On Track",-13

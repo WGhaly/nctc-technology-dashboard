@@ -1,0 +1,6 @@
+city,latitude,longitude,projects,deals,success_rate,revenue_egp
+"Alexandria",31.2001,29.9187,32,6,45,650000
+"Cairo",30.0444,31.2357,45,12,58,1200000
+"Suez",29.9668,32.5498,18,3,38,280000
+"Assiut",27.1809,31.1837,22,4,42,340000
+"Luxor",25.6872,32.6396,15,2,35,180000

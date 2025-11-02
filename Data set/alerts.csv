@@ -1,0 +1,10 @@
+alert_type,priority,description,days_overdue
+"Project Delay","High","Solar NanoPanel - Exceeded TRL 7 SLA",45
+"Regulatory Delay","High","AI Diagnostic - Regulatory approval delayed",30
+"Data Quality","High","South Valley University - Data quality below 60%",0
+"Stage Stuck","Medium","12 projects stuck at TRL 4-5",120
+"IP Expired","Medium","8 projects with expired IP filings",0
+"No Activity","Medium","3 institutions with 0 commercialization events",365
+"Success","Low","Nano-Filter licensed to ChemCorp - EGP 1.2M",0
+"Performance","Low","Nile University reduced deal cycle to 78 days",0
+"Growth","Low","3 new spin-outs created this quarter",0

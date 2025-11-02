@@ -1,0 +1,9 @@
+metric_type,range_label,percentage,count,avg_value
+"Royalty Rate","0-2%",25,67,1.5
+"Royalty Rate","2-5%",45,121,3.5
+"Royalty Rate","5-8%",30,81,6.5
+"Royalty Rate","8%+",5,13,9.2
+"Upfront Fee","< 50K",35,94,35000
+"Upfront Fee","50-100K",25,67,75000
+"Upfront Fee","100-500K",30,81,300000
+"Upfront Fee","> 500K",10,27,750000

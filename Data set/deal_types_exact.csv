@@ -1,0 +1,6 @@
+deal_type,percentage,count,avg_revenue_egp,description
+"Royalty License",40,108,425000,"Traditional licensing with ongoing royalties"
+"Spin-out",25,68,680000,"University spin-off companies"
+"Assignment",15,41,320000,"Full technology transfer"
+"Revenue Share",12,32,290000,"Shared revenue arrangements"
+"JV",8,22,750000,"Joint venture partnerships"

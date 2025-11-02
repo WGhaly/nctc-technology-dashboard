@@ -1,0 +1,9 @@
+range,percentage,type
+"0-2%",25,"Royalty Rate"
+"2-5%",45,"Royalty Rate"
+"5-8%",30,"Royalty Rate"
+"8%+",5,"Royalty Rate"
+"< 50K",35,"Upfront Fee"
+"50-100K",25,"Upfront Fee"
+"100-500K",30,"Upfront Fee"
+"> 500K",10,"Upfront Fee"
