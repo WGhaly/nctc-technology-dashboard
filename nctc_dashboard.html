@@ -323,6 +323,67 @@
                 grid-template-columns: 1fr !important;
                 gap: 0.5rem;
             }
+            
+            /* Pipeline metrics - reduce space and make 2x2 grid */
+            .pipeline-metrics {
+                margin-top: 0.5rem !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.25rem !important;
+                font-size: 0.7rem !important;
+            }
+            
+            .pipeline-metrics > div {
+                padding: 0.3rem !important;
+            }
+            
+            /* Heatmap horizontal scroll on mobile */
+            .heatmap-container {
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+                grid-template-columns: auto repeat(9, 80px);
+                gap: 1px;
+                min-width: 800px;
+                padding-bottom: 0.5rem;
+            }
+            
+            .heatmap-cell {
+                min-width: 70px;
+                padding: 0.3rem;
+                font-size: 0.7rem;
+                min-height: 25px;
+            }
+            
+            .heatmap-row-label {
+                min-width: 90px;
+                position: sticky;
+                left: 0;
+                z-index: 2;
+                background: var(--light-blue) !important;
+            }
+            
+            /* Alert items responsive */
+            .alert-item {
+                padding: 0.75rem;
+                margin-bottom: 0.5rem;
+                flex-direction: column;
+                text-align: center;
+                gap: 0.5rem;
+            }
+            
+            .alert-item .alert-icon {
+                font-size: 1.5rem;
+            }
+            
+            .alert-item div:last-child {
+                font-size: 0.9rem;
+                line-height: 1.4;
+            }
+            
+            /* Reduce chart heights on mobile */
+            .chart-container {
+                height: 250px !important;
+            }
         }
 
         /* Tablet responsive design */
@@ -542,6 +603,11 @@
             grid-template-columns: auto repeat(9, 1fr);
             gap: 2px;
             font-size: 0.8rem;
+        }
+        
+        .heatmap-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .heatmap-cell {
@@ -766,17 +832,18 @@
             <!-- TRL Heatmap -->
             <div class="chart-card full-width">
                 <h3>TRL Distribution Heatmap by Sector</h3>
-                <div class="heatmap-container">
-                    <div class="heatmap-cell heatmap-header">Sector/TRL</div>
-                    <div class="heatmap-cell heatmap-header">1</div>
-                    <div class="heatmap-cell heatmap-header">2</div>
-                    <div class="heatmap-cell heatmap-header">3</div>
-                    <div class="heatmap-cell heatmap-header">4</div>
-                    <div class="heatmap-cell heatmap-header">5</div>
-                    <div class="heatmap-cell heatmap-header">6</div>
-                    <div class="heatmap-cell heatmap-header">7</div>
-                    <div class="heatmap-cell heatmap-header">8</div>
-                    <div class="heatmap-cell heatmap-header">9</div>
+                <div class="heatmap-wrapper" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <div class="heatmap-container">
+                        <div class="heatmap-cell heatmap-header">Sector/TRL</div>
+                        <div class="heatmap-cell heatmap-header">1</div>
+                        <div class="heatmap-cell heatmap-header">2</div>
+                        <div class="heatmap-cell heatmap-header">3</div>
+                        <div class="heatmap-cell heatmap-header">4</div>
+                        <div class="heatmap-cell heatmap-header">5</div>
+                        <div class="heatmap-cell heatmap-header">6</div>
+                        <div class="heatmap-cell heatmap-header">7</div>
+                        <div class="heatmap-cell heatmap-header">8</div>
+                        <div class="heatmap-cell heatmap-header">9</div>
                     
                     <div class="heatmap-cell heatmap-row-label">Health</div>
                     <div class="heatmap-cell heat-low">2</div>
@@ -832,6 +899,7 @@
                     <div class="heatmap-cell heat-low">2</div>
                     <div class="heatmap-cell heat-low">1</div>
                     <div class="heatmap-cell heat-low">0</div>
+                    </div>
                 </div>
             </div>
 
@@ -1102,7 +1170,11 @@
         let charts = {};
         let originalData = {
             funnel: {
-                labels: ['TRL 1-3: Idea/Proof', 'TRL 4-5: Prototype', 'TRL 6-7: Pilot', 'TRL 8-9: Commercial'],
+                labels: window.innerWidth < 768 
+                    ? ['TRL 1-3', 'TRL 4-5', 'TRL 6-7', 'TRL 8-9']
+                    : ['TRL 1-3: Idea/Proof', 'TRL 4-5: Prototype', 'TRL 6-7: Pilot', 'TRL 8-9: Commercial'],
+                fullLabels: ['TRL 1-3: Idea/Proof', 'TRL 4-5: Prototype', 'TRL 6-7: Pilot', 'TRL 8-9: Commercial'],
+                shortLabels: ['TRL 1-3', 'TRL 4-5', 'TRL 6-7', 'TRL 8-9'],
                 data: [85, 62, 41, 27],
                 trlMap: ['1-3', '4-5', '6-7', '8-9']
             },
@@ -1253,15 +1325,38 @@
                         x: {
                             beginAtZero: true,
                             max: 100,
-                            title: { display: true, text: 'Number of Projects' },
-                            grid: { color: 'rgba(30, 60, 139, 0.1)' }
+                            title: { 
+                                display: true, 
+                                text: 'Number of Projects',
+                                font: {
+                                    size: window.innerWidth < 768 ? 10 : 12
+                                }
+                            },
+                            grid: { color: 'rgba(30, 60, 139, 0.1)' },
+                            ticks: {
+                                font: {
+                                    size: window.innerWidth < 768 ? 9 : 11
+                                }
+                            }
                         },
                         y: {
                             grid: { display: false },
-                            ticks: { font: { size: 12, weight: '600' } }
+                            ticks: { 
+                                font: { 
+                                    size: window.innerWidth < 768 ? 9 : 12, 
+                                    weight: '600' 
+                                }
+                            }
                         }
                     },
-                    layout: { padding: { top: 20, right: 20, bottom: 20, left: 20 } }
+                    layout: { 
+                        padding: { 
+                            top: window.innerWidth < 768 ? 10 : 20, 
+                            right: window.innerWidth < 768 ? 10 : 20, 
+                            bottom: window.innerWidth < 768 ? 10 : 20, 
+                            left: window.innerWidth < 768 ? 5 : 20 
+                        } 
+                    }
                 }
             });
 
@@ -1693,6 +1788,64 @@
                 
                 document.getElementById('filterSummary').textContent = `Filtered by: ${filterTexts.join(', ')}`;
             }
+        }
+        
+        // Handle responsive chart updates
+        function handleResize() {
+            // Update funnel chart labels based on screen size
+            const isMobile = window.innerWidth < 768;
+            const newLabels = isMobile ? originalData.funnel.shortLabels : originalData.funnel.fullLabels;
+            
+            charts.funnel.data.labels = newLabels;
+            
+            // Update font sizes for mobile
+            charts.funnel.options.scales.x.title.font.size = isMobile ? 10 : 12;
+            charts.funnel.options.scales.x.ticks.font.size = isMobile ? 9 : 11;
+            charts.funnel.options.scales.y.ticks.font.size = isMobile ? 9 : 12;
+            
+            // Update padding for mobile
+            charts.funnel.options.layout.padding = {
+                top: isMobile ? 10 : 20,
+                right: isMobile ? 10 : 20,
+                bottom: isMobile ? 10 : 20,
+                left: isMobile ? 5 : 20
+            };
+            
+            charts.funnel.update('resize');
+            
+            // Update other charts' font sizes
+            Object.keys(charts).forEach(chartKey => {
+                if (charts[chartKey] && charts[chartKey].options && charts[chartKey].options.scales) {
+                    const chart = charts[chartKey];
+                    if (chart.options.scales.x && chart.options.scales.x.ticks) {
+                        chart.options.scales.x.ticks.font = chart.options.scales.x.ticks.font || {};
+                        chart.options.scales.x.ticks.font.size = isMobile ? 9 : 11;
+                    }
+                    if (chart.options.scales.y && chart.options.scales.y.ticks) {
+                        chart.options.scales.y.ticks.font = chart.options.scales.y.ticks.font || {};
+                        chart.options.scales.y.ticks.font.size = isMobile ? 9 : 11;
+                    }
+                    if (chartKey !== 'funnel') {
+                        chart.update('resize');
+                    }
+                }
+            });
+        }
+        
+        // Add resize event listener
+        window.addEventListener('resize', debounce(handleResize, 300));
+        
+        // Debounce function to prevent excessive resize calls
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
         }
     </script>
 </body>
